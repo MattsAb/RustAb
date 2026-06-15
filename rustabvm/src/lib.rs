@@ -29,11 +29,11 @@ impl Computer {
         let pc = self.cpu.pc.value as usize;
         let instruction = self.rom.read(pc);
         let in_m = self.ram.tick(0, self.cpu.a.value as usize, false);
-        println!("in_m: {}", in_m);
+
 
 
         let (out_m, write_m, address_m, _) = self.cpu.tick(instruction, in_m);
-        println!("out_m: {}, write_m: {}, adress_m: {}", out_m, write_m,address_m);
+
         if write_m {
             self.ram.tick(out_m, address_m as usize, true);
         }
