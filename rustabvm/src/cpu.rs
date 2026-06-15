@@ -4,24 +4,20 @@ use crate::pc::Pc;
 use crate::alu::Alu;
 
 #[derive(Debug, Default)]
-struct Cpu {
-    a: Register,
-    d: Register,
-    alu: Alu,
-    pc: Pc,
+pub struct Cpu {
+    pub a: Register,
+    pub d: Register,
+    pub alu: Alu,
+    pub pc: Pc,
 }
 
 impl Cpu {
-    /// One clock cycle.
-    /// - instruction: 16-bit value from ROM
-    /// - in_m:        value from RAM[A]
-    /// Returns (out_m, write_m, address_m, pc)
-    fn tick(&mut self, instruction: u16, in_m: u16) -> (u16, bool, u16, u16) {
 
-        let is_c = (instruction & 0x8000) != 0; // MSB=1 → C-instruction
+    pub fn tick(&mut self, instruction: u16, in_m: u16) -> (u16, bool, u16, u16) {
 
-        // --- Decode C-instruction fields ---
-        let a_bit = (instruction & 0x1000) != 0; // comp: use M or A as ALU y-input
+        let is_c = (instruction & 0x8000) != 0; 
+
+        let a_bit = (instruction & 0x1000) != 0; 
         
         let c1 = (instruction & 0x0800) != 0; // zx
         let c2 = (instruction & 0x0400) != 0; // nx
@@ -38,13 +34,6 @@ impl Cpu {
         let j2 = (instruction & 0x0002) != 0; // jump if zr
         let j3 = (instruction & 0x0001) != 0; // jump if positive
 
-        // --- A register ---
-        // A-instruction: load the immediate value
-        // C-instruction: load ALU output only if d1 is set
-        let a_input = if is_c { self.alu.out } else { instruction };
-        let load_a  = !is_c || (is_c && d1);
-        self.a.tick(a_input, load_a);
-
 
         self.alu.x  = self.d.value;
         self.alu.y  = if a_bit { in_m } else { self.a.value };
@@ -55,6 +44,12 @@ impl Cpu {
         self.alu.f  = c5;
         self.alu.no = c6;
         self.alu.compute();
+
+
+        let a_input = if is_c { self.alu.out } else { instruction };
+        let load_a  = !is_c || (is_c && d1);
+        self.a.tick(a_input, load_a);
+
 
 
         self.d.tick(self.alu.out, is_c && d2);
@@ -71,9 +66,8 @@ impl Cpu {
         );
 
         
-        let pc_out = self.pc.tick(self.a.value, true, jump, false);
+        let pc_out = self.pc.tick(self.a.value, jump, !jump, false);
 
-        // --- Outputs ---
         let out_m     = self.alu.out;
         let write_m   = is_c && d3;
         let address_m = self.a.value;
@@ -97,18 +91,18 @@ mod tests {
     #[test]
     fn cpu_d_equals_a() {
         let mut cpu = Cpu::default();
-        cpu.tick(17, 0);           // @17  → A=17
-        cpu.tick(0xEC10, 0);       // D=A  → D=17
+        cpu.tick(17, 0);
+        cpu.tick(0xEC10, 0);
         assert_eq!(cpu.d.value, 17);
     }
 
     #[test]
     fn cpu_write_to_memory() {
         let mut cpu = Cpu::default();
-        cpu.tick(10, 0);            // @10      → A=10
-        cpu.tick(0xEC10, 0);        // D=A      → D=10
-        cpu.tick(5, 0);             // @5       → A=5
-        let (out, write, addr, _) = cpu.tick(0xE308, 0); // M=D
+        cpu.tick(10, 0);
+        cpu.tick(0xEC10, 0);
+        cpu.tick(5, 0);            
+        let (out, write, addr, _) = cpu.tick(0xE308, 0);
         assert!(write);
         assert_eq!(addr, 5);
         assert_eq!(out, 10);
@@ -117,9 +111,9 @@ mod tests {
     #[test]
     fn cpu_jump() {
         let mut cpu = Cpu::default();
-        cpu.tick(100, 0);           // @100     → A=100
-        // D=0 by default, JEQ (j2=1): 1 1 1 0 1 0 1 0 1 0 0 0 0 0 1 0 = 0xEA82
+        cpu.tick(100, 0);
+
         let (_, _, _, pc) = cpu.tick(0xEA82, 0);
-        assert_eq!(cpu.pc.value, 100); // jumped to 100
+        assert_eq!(cpu.pc.value, 100);
     }
 }
