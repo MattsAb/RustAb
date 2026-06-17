@@ -8,6 +8,9 @@ impl Rom {
     }
 
     pub fn read(&self, address: usize) -> u16 {
+        if address >= self.data.len() {
+            return 0;
+        }
         self.data[address]
     }
 }
