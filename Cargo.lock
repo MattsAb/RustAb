@@ -11,4 +11,9 @@ name = "rustabvm"
 version = "0.1.0"
 dependencies = [
  "rustabassembler",
+ "vmtranslator",
 ]
+
+[[package]]
+name = "vmtranslator"
+version = "0.1.0"

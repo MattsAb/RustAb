@@ -1,6 +1,6 @@
 [workspace]
 
 members = [
-    "rustabvm",
-    "rustabassembler",
+    "rustabvm", "compiler"
+    "rustabassembler", "vmtranslator",
 ]
